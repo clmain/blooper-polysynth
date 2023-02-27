@@ -73,9 +73,17 @@
 #define CC_PhaserFeedback 119
 #define CC_PhaserWet 117
 
-#define CC_UNUSED 106
 
+//#define CC_UNUSED 106
 
+#define CC_DEBUG_1 9
+#define CC_DEBUG_2 10
+#define CC_DEBUG_3 11
+#define CC_DEBUG_4 12
+#define CC_DEBUG_5 13
+
+#define ExpPedalPin 38
+#define LEDPin 13
 
 /*
 TEENSY 4.1 PINOUT REFERENCE
@@ -106,18 +114,6 @@ LEFT
     32      MuxA S0
 */
 
-#define ExpPedalPin 38
-#define LEDPin 13
-
-// #define MuxA_MaxPins 16 //Max number of pins in use 
-// #define MuxA_S0 32
-// #define MuxA_S1 31
-// #define MuxA_S2 30
-// #define MuxA_S3 29
-// #define MuxA_Engage 28
-// #define MuxA_Sig A13
-
-// /*
 
 // RIGHT
 //     VIn
@@ -144,75 +140,3 @@ LEFT
 //     35
 //     34
 //     33
-
-// */
-
-
-
-// //Mux Pin Definitions
-
-// #define MUX_Polymode //Switch
-// #define MUX_OscAWavetype //Multiswitch 
-// #define MUX_OscBWavetype //Multiswitch
-// #define MUX_OscADetune 
-// #define MUX_OscBDetune 
-// #define MUX_OscVibrato
-// #define MUX_OscAOctave 
-// #define MUX_OscBOctave 
-// #define MUX_OscAPulseWidth 
-// #define MUX_OscBPulseWidth 
-// #define MUX_OscPulseWidthMod 
-
-// #define MUX_FilterFreq 
-// #define MUX_FilterRes  
-// #define MUX_FilterEnv 
-// #define MUX_FilterKeyboard 
-// #define MUX_FilterVelocity 
-// #define MUX_FilterLFO 
-// #define MUX_FilterKBDVeloControl //Switch x2
-
-// #define MUX_EnvVolumeAttack 
-// #define MUX_EnvVolumeDecay 
-// #define MUX_EnvVolumeSustain 
-// #define MUX_EnvVolumeRelease 
-// #define MUX_EnvFilterDelay
-// #define MUX_EnvFilterAttack 
-// #define MUX_EnvFilterDecay 
-// #define MUX_EnvFilterSustain 
-// #define MUX_EnvFilterRelease 
- 
-// #define MUX_ExpPedal
-// #define MUX_ModWheelMode //Multiswitch
-// #define MUX_ExpPedalMode //Multiswitch
-// #define MUX_AftertouchMode //Multiswitch
-// #define MUX_PitchBendAmount //Multiswitch
- 
-// #define MUX_LFOWavetype 
-// #define MUX_LFOSpeed 
- 
-// #define MUX_ReverbTime 
-// #define MUX_ReverbDamp 
-// #define MUX_ReverbWet 
- 
-// #define MUX_DelayLevel 
-// #define MUX_DelayInputLevel 
-// #define MUX_DelayTime 
-// #define MUX_DelayFeedback 
- 
-// #define MUX_MixerOscA 
-// #define MUX_MixerOscB 
-// #define MUX_MixerPink 
-// #define MUX_MasterVol 
- 
-// #define MUX_TremoloWavetype 
-// #define MUX_TremoloSpeed 
-// #define MUX_TremoloDepth 
- 
-// #define MUX_ChorusWet 
- 
-// #define MUX_LeslieSpeed 
-// #define MUX_LeslieDepth 
- 
-// #define MUX_PhaserSpeed 
-// #define MUX_PhaserFeedback 
-// #define MUX_PhaserWet 

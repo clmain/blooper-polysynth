@@ -9,12 +9,16 @@
 #include "audio_setup.h"
 #include "misc_setup.h"
 
-//#define DEBUG_EXP
+//DEGUGS - Sends data over Serial
+#define MIDI_DEBUG //received MIDI commands
+//#define DEBUG_VOICES //Voice numbers
+//#define DEBUG_RESOURCE //Teensy CPU/Mem usage
+//#define DEBUG_EXP //Expression Pedal data
+
 //#define DEBUG 1
-#define DEBUG_VOICES
-#ifdef DEBUG
-  //debug variables
-  #define DEBUG_CYCLE_DURATION 50000 //every second
+
+#ifdef DEBUG_RESOURCE
+  #define DEBUG_CYCLE_DURATION 50000
   unsigned int debugLastMicros = 0;
 #endif
 
@@ -60,11 +64,15 @@ void setup() {
 void loop() {
   MIDI.read();
   MIDI2.read();
+
+  #ifdef MIDI_DEBUG
+    midiDebug(MIDI.getChannel(), MIDI.getType(), MIDI.getData1(), MIDI.getData2());
+  #endif
   //checkMux();
   checkExpPedal();
   updateLFOLED();
-  #ifdef DEBUG
-    //Report data every cycle duration (currently 1 second)
+  #ifdef DEBUG_RESOURCE
+    //Report data every cycle duration
     int debugCurrentMicros = micros();
     if((debugCurrentMicros - debugLastMicros) > DEBUG_CYCLE_DURATION) {
       Serial.print("Audio CPU Usage: ");
@@ -429,8 +437,6 @@ void controlChange(byte channel, byte control, byte value) {
         envelopeVolDecay= (3000 * (value * DIV127));
         for(int voice = 0; voice <numberOfVoices; voice++) { 
           envelopeVol[voice]->decay(envelopeVolDecay);
-          Serial.print(envelopeVolDecay);
-          Serial.println(" - Decay Test");
         }
       }
       break;
@@ -442,8 +448,6 @@ void controlChange(byte channel, byte control, byte value) {
         envelopeVolSustain = (value * DIV127);
         for(int voice = 0; voice <numberOfVoices; voice++) { 
           envelopeVol[voice]->sustain(envelopeVolSustain);
-          Serial.print(envelopeVolSustain);
-          Serial.println(" - Sustain Test");
         }
       }
       
@@ -655,34 +659,37 @@ void controlChange(byte channel, byte control, byte value) {
       break;
     case CC_ModWheel:
       modWheelPos = (value * DIV127);
-      Serial.println(modWheelPos);
-      Serial.println(modWheelSetting);
       switch(modWheelSetting) {
         case 0: //Vibrato
           for(int voice = 0; voice <=VOICES_ARRAY; voice++) { 
             lfoFreq[voice]->gain(modWheelPos * DETUNE_MAX);
           }
           break;
-        case 1: //Tremolo
-          tremoloDepth = modWheelPos;
-          updateTremolo();
+        case 1: //LFO Speed
+          lfo.frequency(modWheelPos * LFO_SPEED_MAX);
           break;
-        case 2: //Filter Frequency
+        case 2: //Porta
+            portamentoSpeed = (1000*pow(100,modWheelPos-1));
+          break;
+        case 3: //Filter Frequency
           for(int voice = 0; voice <=VOICES_ARRAY; voice++) { 
             ladder[voice]->frequency(20000 * modWheelPos);
           }
           break;
-        case 3: //Filter LFO
+        case 4: //Filter LFO
           for(int voice = 0; voice <=VOICES_ARRAY; voice++) { 
             lfoFilterFreq[voice]->gain(modWheelPos);
           }
           break; 
-        case 4: //LFO Speed
-          lfo.frequency(modWheelPos * LFO_SPEED_MAX);
-          break;
+        
         case 5: //Volume
           masterVolL.gain(0, modWheelPos);
           masterVolR.gain(0, modWheelPos);
+          break;
+        //Note Controls only go up to 5 so this should never trigger, saving for if I decide to reimplement
+        case 6: //Tremolo
+          tremoloDepth = modWheelPos;
+          updateTremolo();
           break;
       }
       break;
@@ -877,10 +884,6 @@ void controlChange(byte channel, byte control, byte value) {
       //mixerReverbR.gain(0, 1-reverbWet);
       mixerReverbR.gain(1, reverbWet);
       break;
-
-
-
-
     case CC_LeslieSpeed:
       panSpeed = (value * DIV127);
       panSpeed = (PAN_MAX_SPEED * pow(100,(panSpeed-1)));
@@ -981,6 +984,8 @@ void keyBuffer(byte channel, byte note, float velocity, bool playNote) {
       static byte monoBuffer[MONO_BUFFER];
       static float veloBuffer[MONO_BUFFER];
       static byte monoBufferSize =0;
+      static float lastNote = 0;
+      static float lastVelo = 0;
       if(velocity!=0) {
         oscVelocity = velocity;
       }
@@ -989,7 +994,9 @@ void keyBuffer(byte channel, byte note, float velocity, bool playNote) {
       if (playNote ==true &&(monoBufferSize < MONO_BUFFER)) {
         monoBuffer[monoBufferSize]=note;
         veloBuffer[monoBufferSize]=velocity;
-        oscillatorPlayPorta(0, note, monoBuffer[monoBufferSize-1], velocity);
+        oscillatorPlayPorta(0, note, lastNote, velocity);
+        lastNote = note;
+        //oscillatorPlayPorta(0, note, monoBuffer[monoBufferSize-1], velocity);
         filterSetKbdVel(0, note, velocity);
         monoBufferSize++;
         return;
@@ -1008,7 +1015,8 @@ void keyBuffer(byte channel, byte note, float velocity, bool playNote) {
             monoBufferSize--;
             //Return to base, triggger last note in buffer
             if(monoBufferSize!=0) {
-              oscillatorPlayPorta(0, monoBuffer[monoBufferSize-1], monoBuffer[monoBufferSize], veloBuffer[monoBufferSize-1]);
+              //oscillatorPlayPorta(0, monoBuffer[monoBufferSize-1], monoBuffer[monoBufferSize], veloBuffer[monoBufferSize-1]);
+              oscillatorPlayPorta(0, monoBuffer[monoBufferSize-1], lastNote, veloBuffer[monoBufferSize-1]);
               return;
             } 
             else {
@@ -1094,7 +1102,6 @@ void oscillatorPlayPorta(int voice, byte note, byte previousNote, float velocity
       dcPorta0.amplitude(0, portamentoSpeed); 
     } else {
       dcPorta7.amplitude(slideValueNote);
-      Serial.println(secondPortamentoSpeed);
       dcPorta7.amplitude(0, secondPortamentoSpeed); 
     }
        
@@ -1145,7 +1152,6 @@ void afterTouchChannel(byte channel, byte pressure) {
         
       break;
     case 1: //Vibrato
-      Serial.println(aftertouchPressure);
       for(int voice = 0; voice <=VOICES_ARRAY; voice++) {
           lfoFreq[voice]->gain(0.005*aftertouchPressure);
         }
@@ -1978,6 +1984,236 @@ void updateLFOLED() {
     float pos = lfoPeak.read();
     analogWrite(LEDPin, pos*255);
   }
-  
-  
+}
+
+//---------------------------------------------------------------------------------------------//
+// function midiDebug
+//Prints recieved midi info
+//---------------------------------------------------------------------------------------------//
+void midiDebug(byte channel, byte type, byte data1, byte data2)  {
+    static byte channel_val, type_val, data1_val, data2_val;
+
+    if(channel!=channel_val||type!=type_val||data1!=data1_val||data2!=data2_val) {
+
+        channel_val = channel;
+        type_val = type;
+        data1_val= data1;
+        data2_val = data2;
+        String data1_text, type_text;
+
+        switch (type_val) {
+            case midi::ControlChange:
+                type_text="CC";
+                switch(data1_val) {
+                    case 14:
+                        data1_text="CC_ChannelMain";
+                        break;
+                    case 15:
+                        data1_text="CC_SecondaryChannel";
+                        break;
+                    case 16:
+                        data1_text="CC_SecondaryEnable";
+                        break;
+                    case 17:
+                        data1_text="CC_SecondaryControl";
+                        break;
+                    case 18:
+                        data1_text="CC_SecondaryBypass";
+                        break;
+                    case 19:
+                        data1_text="CC_SecondaryVolume";
+                        break;
+                    case 84:
+                        data1_text="CC_Polymode";
+                        break;
+                    case 90:
+                        data1_text="CC_Portamento";
+                        break;
+                    case 24:
+                        data1_text="CC_OscAWavetype";
+                        break;
+                    case 25:
+                        data1_text="CC_OscBWavetype";
+                        break;
+                    case 20:
+                        data1_text="CC_OscADetune";
+                        break;
+                    case 21:
+                        data1_text="CC_OscBDetune";
+                        break;
+                    case 58:
+                        data1_text="CC_OscVibrato";
+                        break;
+                    case 22:
+                        data1_text="CC_OscAOctave";
+                        break;
+                    case 23:
+                        data1_text="CC_OscBOctave";
+                        break;
+                    case 26:
+                        data1_text="CC_OscAPulseWidth";
+                        break;
+                    case 27:
+                        data1_text="CC_OscBPulseWidth";
+                        break;
+                    case 60:
+                        data1_text="CC_OscPulseWidthMod";
+                        break;
+                    case 47:
+                        data1_text="CC_FilterFreq";
+                        break;
+                    case 48:
+                        data1_text="CC_FilterRes";
+                        break;
+                    case 52:
+                        data1_text="CC_FilterEnv";
+                        break;
+                    case 49:
+                        data1_text="CC_FilterKeyboard";
+                        break;
+                    case 50:
+                        data1_text="CC_FilterVelocity";
+                        break;
+                    case 63:
+                        data1_text="CC_FilterLFO";
+                        break;
+                    case 51:
+                        data1_text="CC_FilterKBDVeloControl";
+                        break;
+                    case 28:
+                        data1_text="CC_EnvVolumeAttack";
+                        break;
+                    case 29:
+                        data1_text="CC_EnvVolumeDecay";
+                        break;
+                    case 30:
+                        data1_text="CC_EnvVolumeSustain";
+                        break;
+                    case 31:
+                        data1_text="CC_EnvVolumeRelease";
+                        break;
+                    case 53:
+                        data1_text="CC_EnvFilterDelay";
+                        break;
+                    case 54:
+                        data1_text="CC_EnvFilterAttack";
+                        break;
+                    case 55:
+                        data1_text="CC_EnvFilterDecay";
+                        break;
+                    case 56:
+                        data1_text="CC_EnvFilterSustain";
+                        break;
+                    case 57:
+                        data1_text="CC_EnvFilterRelease";
+                        break;
+                    case 1:
+                        data1_text="CC_ModWheel";
+                        break;
+                    case 88:
+                        data1_text="CC_ModWheelMode";
+                        break;
+                    case 89:
+                        data1_text="CC_ExpPedalMode";
+                        break;
+                    case 114:
+                        data1_text="CC_AftertouchMode";
+                        break;
+                    case 46:
+                        data1_text="CC_PitchBendAmount";
+                        break;
+                    case 61:
+                        data1_text="CC_LFOWavetype";
+                        break;
+                    case 62:
+                        data1_text="CC_LFOSpeed";
+                        break;
+                    case 102:
+                        data1_text="CC_ReverbSize";
+                        break;
+                    case 103:
+                        data1_text="CC_ReverbDamping";
+                        break;
+                    case 104:
+                        data1_text="CC_ReverbWet";
+                        break;
+                    case 110:
+                        data1_text="CC_DelayLevel";
+                        break;
+                    case 111:
+                        data1_text="CC_DelayInputLevel";
+                        break;
+                    case 112:
+                        data1_text="CC_DelayTime";
+                        break;
+                    case 113:
+                        data1_text="CC_DelayFeedback";
+                        break;
+                    case 85:
+                        data1_text="CC_MixerOscA";
+                        break;
+                    case 86:
+                        data1_text="CC_MixerOscB";
+                        break;
+                    case 87:
+                        data1_text="CC_MixerPink";
+                        break;
+                    case 59:
+                        data1_text="CC_MasterVol";
+                        break;
+                    case 107:
+                        data1_text="CC_TremoloWavetype";
+                        break;
+                    case 108:
+                        data1_text="CC_TremoloSpeed";
+                        break;
+                    case 109:
+                        data1_text="CC_TremoloDepth";
+                        break;
+                    case 105:
+                        data1_text="CC_ChorusWet";
+                        break;
+                    case 115:
+                        data1_text="CC_LeslieSpeed";
+                        break;
+                    case 116:
+                        data1_text="CC_LeslieDepth";
+                        break;
+                    case 118:
+                        data1_text="CC_PhaserSpeed";
+                        break;
+                    case 119:
+                        data1_text="CC_PhaserFeedback";
+                        break;
+                    case 117:
+                        data1_text="CC_PhaserWet";
+                        break;
+                    case 9:
+                        data1_text="Debug_1";
+                        break;
+                    case 10:
+                        data1_text="Debug_2";
+                        break;
+                    case 11:
+                        data1_text="Debug_3";
+                        break;
+                    case 12:
+                        data1_text="Debug_4";
+                        break;
+                    case 13:
+                        data1_text="Debug_5";
+                        break;
+
+                }
+                Serial.print("CH ");
+                Serial.print(channel_val);
+                Serial.print(". Type: ");
+                Serial.print(type_text);
+                Serial.print(" - ");
+                Serial.print(data1_text);
+                Serial.print(" - ");
+                Serial.println(data2_val);
+                break;
+        }
+    }
 }
