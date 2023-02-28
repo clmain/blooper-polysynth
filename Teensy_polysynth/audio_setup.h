@@ -8,14 +8,14 @@ AudioEffectPhaser phaserR;
 AudioEffectEnsemble ensembleL;
 AudioEffectEnsemble ensembleR;
 
-AudioConnection          patchCord426(mixerWaveshapeL, 0, phaserL, 0);
-AudioConnection          patchCord427(mixerWaveshapeR, 0, phaserR, 0);
-AudioConnection          patchCord428(phaserL, 0, mixerPhaserL, 1);
-AudioConnection          patchCord429(phaserR, 0, mixerPhaserR, 1);
-AudioConnection          patchCord430(mixerPhaserL, 0, ensembleL, 0);
-AudioConnection          patchCord431(mixerPhaserR, 0, ensembleR, 0);
-AudioConnection          patchCord432(ensembleL, 0, mixerChorusL, 1);
-AudioConnection          patchCord433(ensembleR, 0, mixerChorusR, 1);
+AudioConnection          patchCord428(mixerWaveshapeL, 0, phaserL, 0);
+AudioConnection          patchCord429(mixerWaveshapeR, 0, phaserR, 0);
+AudioConnection          patchCord430(phaserL, 0, mixerPhaserL, 1);
+AudioConnection          patchCord431(phaserR, 0, mixerPhaserR, 1);
+AudioConnection          patchCord432(mixerPhaserL, 0, ensembleL, 0);
+AudioConnection          patchCord433(mixerPhaserR, 0, ensembleR, 0);
+AudioConnection          patchCord434(ensembleL, 0, mixerChorusL, 1);
+AudioConnection          patchCord435(ensembleR, 0, mixerChorusR, 1);
 //AudioConnection          patchCord410(panLFOR, 0, phaserR, 1); //Connection to Leslie LFO
 //AudioConnection          patchCord411(panLFOL, 0, phaserL, 1); //Connection to Leslie LFO
 

@@ -726,6 +726,11 @@ void controlChange(byte channel, byte control, byte value) {
         numberOfVoices = VOICES_SECONDARY;
         oscillatorStop(secondaryVoice);
 
+        mixerOscLeft2.gain(3,0);
+        mixerOscRight2.gain(3,0);
+        mixerOscLeftMaster.gain(2,1);
+        mixerOscRightMaster.gain(2,1);
+
         //Master LFO on voice 7, enable secondary
         mixerLfoMaster7.gain(0,0);
         mixerLfoMaster7.gain(1,1);
@@ -734,6 +739,11 @@ void controlChange(byte channel, byte control, byte value) {
       } else {
         numberOfVoices = VOICES;
         secondaryVol.gain(1);
+
+        mixerOscLeft2.gain(3,1);
+        mixerOscRight2.gain(3,1);
+        mixerOscLeftMaster.gain(2,0);
+        mixerOscRightMaster.gain(2,0);
 
         //Re-engage Master LFO on voice 7
         mixerLfoMaster7.gain(0,1);
@@ -904,8 +914,11 @@ void controlChange(byte channel, byte control, byte value) {
     case CC_MasterVol:
       masterVolLeft = value * DIV127;
       masterVolRight = value * DIV127;
-      masterVolL.gain(0, masterVolLeft);
-      masterVolR.gain(0, masterVolRight);
+
+      mixerOscLeftMaster.gain(0,masterVolLeft);
+      mixerOscLeftMaster.gain(1,masterVolLeft);
+      mixerOscRightMaster.gain(0,masterVolRight);
+      mixerOscRightMaster.gain(1,masterVolRight);
       break;
   }
 }
